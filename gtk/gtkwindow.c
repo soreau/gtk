@@ -6748,7 +6748,7 @@ gtk_window_get_preferred_height (GtkWidget *widget,
   GtkStyleContext *context;
   GtkStateFlags state;
   guint border_width;
-  int title_min;
+  int title_min = 0;
 
   window = GTK_WINDOW (widget);
   priv = window->priv;
