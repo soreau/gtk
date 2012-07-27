@@ -5310,8 +5310,6 @@ gtk_window_realize (GtkWidget *widget)
       gtk_widget_set_window (widget, gdk_window);
       gdk_window_set_user_data (gdk_window, widget);
 
-      gtk_style_context_set_background (gtk_widget_get_style_context (widget), gdk_window);
-
       gdk_window_enable_synchronized_configure (gdk_window);
       return;
     }
@@ -5393,10 +5391,6 @@ gtk_window_realize (GtkWidget *widget)
   gdk_window_enable_synchronized_configure (gdk_window);
 
   gdk_window_set_user_data (gdk_window, window);
-
-  context = gtk_widget_get_style_context (widget);
-  gtk_style_context_set_background (context, gdk_window);
-
 
   if (priv->transient_parent &&
       gtk_widget_get_realized (GTK_WIDGET (priv->transient_parent)))
@@ -7942,7 +7936,6 @@ gtk_window_draw (GtkWidget *widget,
 	{
 	  gtk_style_context_add_class (context, "window-border");
 	  gtk_widget_get_allocation (widget, &allocation);
-
 	  gtk_render_background (context, cr,
 				 priv->window_border.left,
 				 priv->window_border.top,
@@ -7952,7 +7945,6 @@ gtk_window_draw (GtkWidget *widget,
 				 allocation.height -
 				 priv->window_border.top -
 				 priv->window_border.bottom);
-
 	  gtk_render_frame (context, cr,
 			    0, 0, allocation.width, allocation.height);
 	}
