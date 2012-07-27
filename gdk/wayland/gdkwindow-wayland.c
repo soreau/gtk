@@ -322,6 +322,7 @@ gdk_wayland_window_attach_image (GdkWindow *window)
   GdkWindowImplWayland *impl = GDK_WINDOW_IMPL_WAYLAND (window->impl);
   GdkWaylandCairoSurfaceData *data;
   int32_t server_width, server_height, dx, dy;
+  cairo_surface_t *old_server_surface = NULL;
 
   if (GDK_WINDOW_DESTROYED (window))
     return;
@@ -345,7 +346,7 @@ gdk_wayland_window_attach_image (GdkWindow *window)
       server_width = data->width;
       server_height = data->height;
 
-      cairo_surface_destroy (impl->server_surface);
+      old_server_surface = impl->server_surface;
     }
   else
     {
@@ -372,6 +373,9 @@ gdk_wayland_window_attach_image (GdkWindow *window)
 
   /* Attach this new buffer to the surface */
   wl_surface_attach (impl->surface, data->buffer, dx, dy);
+
+  if (old_server_surface)
+    cairo_surface_destroy (old_server_surface);
 }
 
 #ifdef GDK_WAYLAND_USE_EGL
