@@ -689,10 +689,34 @@ shell_surface_ping (void                    *data,
   wl_shell_surface_pong(shell_surface, serial);
 }
 
+static void
+shell_surface_maximize(void *data, struct wl_shell_surface *shell_surface)
+{
+}
+
+static void
+shell_surface_unmaximize(void *data, struct wl_shell_surface *shell_surface)
+{
+}
+
+static void
+shell_surface_minimize(void *data, struct wl_shell_surface *shell_surface)
+{
+}
+
+static void
+shell_surface_unminimize(void *data, struct wl_shell_surface *shell_surface)
+{
+}
+
 static const struct wl_shell_surface_listener shell_surface_listener = {
   shell_surface_ping,
   shell_surface_handle_configure,
-  shell_surface_popup_done
+  shell_surface_popup_done,
+  shell_surface_maximize,
+  shell_surface_unmaximize,
+  shell_surface_minimize,
+  shell_surface_unminimize
 };
 
 static void
