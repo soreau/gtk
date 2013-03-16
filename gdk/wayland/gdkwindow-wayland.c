@@ -133,8 +133,10 @@ struct _GdkWindowImplWayland
   struct wl_seat *grab_input_seat;
   guint32 grab_time;
 
+  gboolean maximized;
   gboolean fullscreen;
-  int saved_width, saved_height; /* before going fullscreen */
+  int saved_width, saved_height; /* before going maximized or fullscreen */
+
 };
 
 struct _GdkWindowImplWaylandClass
@@ -684,21 +686,79 @@ shell_surface_ping (void                    *data,
 static void
 shell_surface_maximize(void *data, struct wl_shell_surface *shell_surface)
 {
+  GdkWindow *window = GDK_WINDOW (data);
+  GdkWindowImplWayland *impl = GDK_WINDOW_IMPL_WAYLAND (window->impl);
+
+  if (GDK_WINDOW_DESTROYED (window) ||
+      !WINDOW_IS_TOPLEVEL_OR_FOREIGN (window))
+    return;
+
+  if (impl->maximized)
+    return;
+
+  if (GDK_WINDOW_IS_MAPPED (window))
+    {
+    if (impl->surface)
+      {
+        impl->saved_width = gdk_window_get_width (window);
+        impl->saved_height = gdk_window_get_height (window);
+        if (impl->shell_surface)
+          wl_shell_surface_set_maximized(impl->shell_surface, NULL);
+      }
+      gdk_synthesize_window_state (window,
+				   0,
+				   GDK_WINDOW_STATE_MAXIMIZED);
+      impl->maximized = TRUE;
+    }
 }
 
 static void
 shell_surface_unmaximize(void *data, struct wl_shell_surface *shell_surface)
 {
+  GdkWindow *window = GDK_WINDOW (data);
+  GdkWindowImplWayland *impl = GDK_WINDOW_IMPL_WAYLAND (window->impl);
+
+  if (GDK_WINDOW_DESTROYED (window) ||
+      !WINDOW_IS_TOPLEVEL_OR_FOREIGN (window))
+    return;
+
+  if (!impl->maximized)
+    return;
+
+  wl_shell_surface_set_toplevel (impl->shell_surface);
+  gdk_synthesize_window_state (window, GDK_WINDOW_STATE_MAXIMIZED, 0);
+  gdk_wayland_window_configure (window, impl->saved_width, impl->saved_height,
+                                0);
+
+  impl->maximized = FALSE;
 }
 
 static void
 shell_surface_minimize(void *data, struct wl_shell_surface *shell_surface)
 {
+  GdkWindow *window = GDK_WINDOW (data);
+
+  if (GDK_WINDOW_DESTROYED (window) ||
+      !WINDOW_IS_TOPLEVEL_OR_FOREIGN (window))
+    return;
+
+      gdk_synthesize_window_state (window,
+                                   0,
+                                   GDK_WINDOW_STATE_ICONIFIED);
 }
 
 static void
 shell_surface_unminimize(void *data, struct wl_shell_surface *shell_surface)
 {
+  GdkWindow *window = GDK_WINDOW (data);
+
+  if (GDK_WINDOW_DESTROYED (window) ||
+      !WINDOW_IS_TOPLEVEL_OR_FOREIGN (window))
+    return;
+
+      gdk_synthesize_window_state (window,
+                                   GDK_WINDOW_STATE_ICONIFIED,
+                                   0);
 }
 
 static const struct wl_shell_surface_listener shell_surface_listener = {
@@ -1270,6 +1330,23 @@ gdk_wayland_window_set_icon_name (GdkWindow   *window,
 static void
 gdk_wayland_window_iconify (GdkWindow *window)
 {
+  GdkWindowImplWayland *impl;
+
+  if (GDK_WINDOW_DESTROYED (window) ||
+      !WINDOW_IS_TOPLEVEL_OR_FOREIGN (window))
+    return;
+
+  impl = GDK_WINDOW_IMPL_WAYLAND (window->impl);
+
+  if (impl->surface)
+    {
+      if (impl->shell_surface)
+        wl_shell_surface_set_minimized(impl->shell_surface);
+    }
+
+  gdk_synthesize_window_state (window,
+                               0,
+                               GDK_WINDOW_STATE_ICONIFIED);
 }
 
 static void
@@ -1279,15 +1356,9 @@ gdk_wayland_window_deiconify (GdkWindow *window)
       !WINDOW_IS_TOPLEVEL_OR_FOREIGN (window))
     return;
 
-  if (GDK_WINDOW_IS_MAPPED (window))
-    {  
-      gdk_window_show (window);
-    }
-  else
-    {
-      /* Flip our client side flag, the real work happens on map. */
-      gdk_synthesize_window_state (window, GDK_WINDOW_STATE_ICONIFIED, 0);
-    }
+  gdk_synthesize_window_state (window,
+                               GDK_WINDOW_STATE_ICONIFIED,
+                               0);
 }
 
 static void
@@ -1307,15 +1378,52 @@ gdk_wayland_window_unstick (GdkWindow *window)
 static void
 gdk_wayland_window_maximize (GdkWindow *window)
 {
-  if (GDK_WINDOW_DESTROYED (window))
+  GdkWindowImplWayland *impl;
+
+  if (GDK_WINDOW_DESTROYED (window) ||
+      !WINDOW_IS_TOPLEVEL_OR_FOREIGN (window))
     return;
+
+  impl = GDK_WINDOW_IMPL_WAYLAND (window->impl);
+
+  if (GDK_WINDOW_IS_MAPPED (window))
+    {
+    if (impl->surface)
+      {
+        impl->saved_width = gdk_window_get_width (window);
+        impl->saved_height = gdk_window_get_height (window);
+        if (impl->shell_surface)
+          wl_shell_surface_set_maximized(impl->shell_surface, NULL);
+      }
+      gdk_synthesize_window_state (window,
+				   0,
+				   GDK_WINDOW_STATE_MAXIMIZED);
+      impl->maximized = TRUE;
+    }
 }
 
 static void
 gdk_wayland_window_unmaximize (GdkWindow *window)
 {
-  if (GDK_WINDOW_DESTROYED (window))
+  GdkWindowImplWayland *impl;
+
+  if (GDK_WINDOW_DESTROYED (window) ||
+      !WINDOW_IS_TOPLEVEL_OR_FOREIGN (window))
     return;
+
+  impl = GDK_WINDOW_IMPL_WAYLAND (window->impl);
+
+  if (GDK_WINDOW_IS_MAPPED (window))
+    {
+    if (impl->surface)
+      {
+        if (impl->shell_surface)
+          wl_shell_surface_set_toplevel(impl->shell_surface);
+      }
+      gdk_synthesize_window_state (window,
+				   GDK_WINDOW_STATE_MAXIMIZED,
+				   0);
+    }
 }
 
 static void
