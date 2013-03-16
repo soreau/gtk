@@ -781,33 +781,16 @@ GtkCalendar.button:hover {
   border-radius: 5px 5px 0px 0px;
 }
 
-.window-border-bar {
-  border-style: solid;
-  border-width: 1px 1px 2px 1px;
-  border-color: darker (@bg_color);
-  border-radius: 5px 5px 0px 0px;
-}
-
 .window-border {
   border-color: darker (@bg_color);
-  border-radius: 10px;
-  #border-width: 5px 5px 5px 5px;
-  border-width: 0px;
+  border-radius: 5px;
+  border-width: 1px 1px 1px 1px;
   border-style: solid;
 }
 
-.window-outer-border {
-  border-color: transparent;
-  border-radius: 10px;
-  border-width: 10px 10px 10px 10px;
+.window-border-bar {
   border-style: solid;
-}
-
-
-.titlebar GtkButton:first-child {
-  border-radius: 10px 0px 0px 0px;
-}
-
-.titlebar GtkButton:last-child {
-  border-radius: 0px 10px 0px 0px;
+  border-width: 1px 1px 1px 1px;
+  border-color: darker (@bg_color);
+  border-radius: 5px 5px 0px 0px;
 }
