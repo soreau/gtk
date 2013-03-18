@@ -525,6 +525,34 @@ gdk_window_impl_wayland_finalize (GObject *object)
 }
 
 static void
+gdk_window_wayland_withdraw (GdkWindow *window)
+{
+  GdkWindowImplWayland *impl;
+
+  if (!window->destroyed)
+    {
+      if (GDK_WINDOW_IS_MAPPED (window))
+	gdk_synthesize_window_state (window, 0, GDK_WINDOW_STATE_WITHDRAWN);
+
+      g_assert (!GDK_WINDOW_IS_MAPPED (window));
+
+      impl = GDK_WINDOW_IMPL_WAYLAND (window->impl);
+      if (impl->surface)
+        {
+          if (impl->shell_surface)
+            wl_shell_surface_destroy(impl->shell_surface);
+          if (impl->surface)
+            wl_surface_destroy(impl->surface);
+          impl->shell_surface = NULL;
+          impl->surface = NULL;
+          cairo_surface_destroy(impl->server_surface);
+          impl->server_surface = NULL;
+          impl->mapped = FALSE;
+        }
+    }
+}
+
+static void
 gdk_wayland_window_configure (GdkWindow *window,
 			      int width, int height, int edges)
 {
@@ -765,6 +793,17 @@ shell_surface_unminimize(void *data, struct wl_shell_surface *shell_surface)
                                    0);
 }
 
+static void
+shell_surface_close(void *data, struct wl_shell_surface *shell_surface)
+{
+  GdkWindow *window = GDK_WINDOW (data);
+
+  if (GDK_WINDOW_DESTROYED (window))
+    return;
+
+  gdk_window_wayland_withdraw(window);
+}
+
 static const struct wl_shell_surface_listener shell_surface_listener = {
   shell_surface_ping,
   shell_surface_handle_configure,
@@ -772,7 +811,8 @@ static const struct wl_shell_surface_listener shell_surface_listener = {
   shell_surface_maximize,
   shell_surface_unmaximize,
   shell_surface_minimize,
-  shell_surface_unminimize
+  shell_surface_unminimize,
+  shell_surface_close
 };
 
 static void
@@ -831,34 +871,6 @@ gdk_wayland_window_hide (GdkWindow *window)
     }
 
   _gdk_window_clear_update_area (window);
-}
-
-static void
-gdk_window_wayland_withdraw (GdkWindow *window)
-{
-  GdkWindowImplWayland *impl;
-
-  if (!window->destroyed)
-    {
-      if (GDK_WINDOW_IS_MAPPED (window))
-	gdk_synthesize_window_state (window, 0, GDK_WINDOW_STATE_WITHDRAWN);
-
-      g_assert (!GDK_WINDOW_IS_MAPPED (window));
-
-      impl = GDK_WINDOW_IMPL_WAYLAND (window->impl);
-      if (impl->surface)
-        {
-          if (impl->shell_surface)
-            wl_shell_surface_destroy(impl->shell_surface);
-          if (impl->surface)
-            wl_surface_destroy(impl->surface);
-          impl->shell_surface = NULL;
-          impl->surface = NULL;
-          cairo_surface_destroy(impl->server_surface);
-          impl->server_surface = NULL;
-          impl->mapped = FALSE;
-        }
-    }
 }
 
 static void
